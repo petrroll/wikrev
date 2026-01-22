@@ -1,0 +1,65 @@
+<details class="card" open>
+  <summary class="card-summary">
+    <span class="collapse-indicator"></span>
+    <h2 class="card-title">{{ change.title }}</h2>
+    <span class="meta-inline">
+      <span class="pill author">{{ change.group.author }}</span>
+      <span class="pill date">{{ change.group.newest_date.strftime('%Y-%m-%d %H:%M') }}</span>
+      <span class="pill file">{{ change.group.file_path }}</span>
+      <span class="pill commits-count">{{ change.group.commits|length }} commit{% if change.group.commits|length > 1 %}s{% endif %}</span>
+    </span>
+  </summary>
+  
+  <div class="card-body">
+    <div class="commits-summary">
+      {% if change.group.subjects|length > 1 %}
+        <strong>{{ change.group.subjects|length }} commits merged:</strong>
+      {% else %}
+        <strong>Commit:</strong>
+      {% endif %}
+      <ul>
+        {% for i in range(change.group.subjects|length) %}
+          <li>
+            <code class="commit-hash">{{ change.group.commits[i][:7] }}</code>
+            {{ change.group.subjects[i] }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="summary-section">
+      <strong>Summary:</strong>
+      {% if enable_copilot %}
+        {% if change.summary %}
+          <p class="summary-text">{{ change.summary }}</p>
+        {% else %}
+          <div
+            hx-get="/summary/{{ change.summary_key | urlencode }}?weeks_back={{ weeks_back }}"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+            class="summary-placeholder"
+          >Generating summary…</div>
+        {% endif %}
+      {% else %}
+        <p class="summary-text muted">Copilot summaries disabled</p>
+      {% endif %}
+    </div>
+
+    <pre class="diff-source" hidden>{{ change.diff_text }}</pre>
+
+    <details class="panel" open>
+      <summary>Code diff</summary>
+      <div class="rendered diff2html"></div>
+    </details>
+
+    <details class="panel">
+      <summary>Rendered diff (visual preview)</summary>
+      <article class="rendered markdown-body rendered-diff">{{ change.rendered_diff | safe }}</article>
+    </details>
+
+    <details class="panel">
+      <summary>Final content</summary>
+      <article class="rendered markdown-body">{{ change.rendered_final | safe }}</article>
+    </details>
+  </div>
+</details>

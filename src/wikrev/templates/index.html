@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block content %}
+  {% if changes|length == 0 %}
+    <div class="empty">
+      <p>No changes found.</p>
+    </div>
+  {% else %}
+    {% for change in changes %}
+      {% include "change_card.html" %}
+    {% endfor %}
+  {% endif %}
+{% endblock %}

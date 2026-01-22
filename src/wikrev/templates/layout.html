@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WikRev - Wiki Reviewer</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/diff2html/bundles/css/diff2html.min.css" />
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/diff2html/bundles/js/diff2html.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <h1>WikRev - Wiki Reviewer</h1>
+      <p>Review all wiki changes since <strong>{{ last_run }}</strong></p>
+      <div class="actions">
+        <form method="post" action="/refresh">
+          <button class="btn" type="submit">Pull & Refresh</button>
+        </form>
+        <form method="post" action="/mark-reviewed">
+          <button class="btn btn-secondary" type="submit">Mark Reviewed (set now)</button>
+        </form>
+        <a href="/?weeks_back={{ (weeks_back or 0) + 1 }}" class="btn btn-secondary">← Older</a>
+        {% if weeks_back and weeks_back > 0 %}
+        <a href="/?weeks_back={{ weeks_back - 1 }}" class="btn btn-secondary">Newer →</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  <main class="container">
+    <nav class="card-nav" id="card-nav">
+      <span class="nav-counter"><span id="current-card">1</span> / <span id="total-cards">0</span></span>
+      <button class="btn btn-nav" id="prev-card" title="Previous (Page Up / ↑)">↑ Prev</button>
+      <button class="btn btn-nav" id="next-card" title="Next (Page Down / ↓)">↓ Next</button>
+      <button class="btn btn-nav" id="collapse-all" title="Collapse all cards">Collapse All</button>
+      <button class="btn btn-nav" id="expand-all" title="Expand all cards">Expand All</button>
+    </nav>
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize diff2html
+      document.querySelectorAll(".diff2html").forEach((container) => {
+        const card = container.closest(".card");
+        const source = card ? card.querySelector(".diff-source") : null;
+        if (!source) return;
+        const diffText = source.textContent || "";
+        if (!diffText.trim()) {
+          container.innerHTML = "<p>No diff available.</p>";
+          return;
+        }
+        const html = Diff2Html.html(diffText, {
+          drawFileList: false,
+          matching: "lines",
+          outputFormat: "line-by-line",
+        });
+        container.innerHTML = html;
+      });
+
+      // Card navigation
+      const cards = Array.from(document.querySelectorAll(".card"));
+      const totalCards = document.getElementById("total-cards");
+      const currentCardEl = document.getElementById("current-card");
+      const cardNav = document.getElementById("card-nav");
+      let currentIndex = 0;
+      let hasSelection = true; // Start with first card selected
+
+      if (cards.length === 0) {
+        cardNav.style.display = "none";
+        return;
+      }
+
+      totalCards.textContent = cards.length;
+      updateCurrentCard();
+
+      function getCardIndexFromScroll() {
+        const navHeight = cardNav ? cardNav.offsetHeight : 0;
+        const scrollTop = window.scrollY + navHeight;
+        
+        let index = 0;
+        for (let i = 0; i < cards.length; i++) {
+          const cardTop = cards[i].offsetTop;
+          if (scrollTop >= cardTop) {
+            index = i;
+          } else {
+            break;
+          }
+        }
+        return index;
+      }
+
+      function updateCurrentCard() {
+        if (hasSelection) {
+          currentCardEl.textContent = currentIndex + 1;
+        } else {
+          currentCardEl.textContent = "-";
+        }
+        cards.forEach((c, i) => c.classList.toggle("card-active", hasSelection && i === currentIndex));
+      }
+
+      function ensureSelection() {
+        if (!hasSelection) {
+          hasSelection = true;
+          currentIndex = getCardIndexFromScroll();
+          updateCurrentCard();
+        }
+      }
+
+      function scrollToCard(index) {
+        if (index < 0 || index >= cards.length) return;
+        hasSelection = true;
+        currentIndex = index;
+        updateCurrentCard();
+        // Scroll with offset to account for sticky card-nav
+        const navHeight = cardNav ? cardNav.offsetHeight : 0;
+        const cardTop = cards[index].getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: cardTop - navHeight - 8, behavior: 'smooth' });
+        // Ensure card is expanded when navigating to it
+        if (!cards[index].open) {
+          cards[index].open = true;
+        }
+      }
+
+      function nextCard() {
+        ensureSelection();
+        if (currentIndex < cards.length - 1) {
+          scrollToCard(currentIndex + 1);
+        }
+      }
+
+      function prevCard() {
+        ensureSelection();
+        if (currentIndex > 0) {
+          scrollToCard(currentIndex - 1);
+        }
+      }
+
+      function deselectCard() {
+        hasSelection = false;
+        updateCurrentCard();
+      }
+
+      document.getElementById("next-card").addEventListener("click", nextCard);
+      document.getElementById("prev-card").addEventListener("click", prevCard);
+      
+      document.getElementById("collapse-all").addEventListener("click", () => {
+        cards.forEach(card => card.open = false);
+      });
+      
+      document.getElementById("expand-all").addEventListener("click", () => {
+        cards.forEach(card => card.open = true);
+      });
+
+      // Click outside cards to deselect, click on card to select it
+      document.addEventListener("click", (e) => {
+        const clickedCard = e.target.closest(".card");
+        const clickedNav = e.target.closest(".card-nav");
+        const clickedHeader = e.target.closest(".header");
+        if (clickedCard) {
+          const clickedIndex = cards.indexOf(clickedCard);
+          if (clickedIndex !== -1) {
+            hasSelection = true;
+            currentIndex = clickedIndex;
+            updateCurrentCard();
+          }
+        } else if (!clickedNav && !clickedHeader) {
+          deselectCard();
+        }
+      });
+
+      // Keyboard navigation
+      document.addEventListener("keydown", (e) => {
+        // Skip if user is typing in an input
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+        
+        if (e.key === "PageDown" || e.key === "ArrowDown") {
+          e.preventDefault();
+          nextCard();
+        } else if (e.key === "PageUp" || e.key === "ArrowUp") {
+          e.preventDefault();
+          prevCard();
+        } else if (e.key === "Enter") {
+          // Toggle current card
+          ensureSelection();
+          if (cards[currentIndex]) {
+            e.preventDefault();
+            cards[currentIndex].open = !cards[currentIndex].open;
+          }
+        } else if (e.key === " ") {
+          // Toggle current card and go to next
+          ensureSelection();
+          if (cards[currentIndex]) {
+            e.preventDefault();
+            cards[currentIndex].open = !cards[currentIndex].open;
+            nextCard();
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1115;
+  --card: #1b1f27;
+  --muted: #9aa4b2;
+  --accent: #5aa2ff;
+  --border: #2a3140;
+  --text: #f5f7fb;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f9fc;
+    --card: #ffffff;
+    --muted: #5f6b7a;
+    --accent: #2d6cdf;
+    --border: #e1e6ef;
+    --text: #1c2330;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  width: min(1200px, 92vw);
+  margin: 0 auto;
+}
+
+.header {
+  padding: 32px 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+  margin: 0 0 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.actions .btn {
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: inherit;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.card-header {
+  display: grid;
+  gap: 12px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pill {
+  background: rgba(90, 162, 255, 0.15);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.panel {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rendered {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.rendered table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rendered td, .rendered th {
+  border: 1px solid var(--border);
+  padding: 8px;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+.d2h-wrapper {
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+.d2h-file-header {
+  display: none;
+}
+
+.d2h-diff-table {
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  border-collapse: collapse;
+}
+
+/* Simplify line-by-line diff: single line number, less row separation */
+.d2h-code-linenumber {
+  border: none;
+  background: transparent;
+  padding: 0 8px 0 4px;
+  min-width: auto;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* Hide the second line number column in line-by-line mode */
+.d2h-code-side-linenumber {
+  display: none;
+}
+
+/* Remove heavy borders between rows */
+.d2h-diff-tbody tr {
+  border: none;
+}
+
+.d2h-diff-tbody td {
+  border: none;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  padding: 1px 4px;
+}
+
+/* Keep subtle coloring for changed lines */
+.d2h-del {
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.d2h-ins {
+  background: rgba(46, 160, 67, 0.15);
+}
+
+.d2h-code-line-ctn {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: none;
+}
+
+.summary {
+  color: var(--muted);
+}
+
+.summary-placeholder {
+  color: var(--muted);
+}
+
+.commits-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(90, 162, 255, 0.08);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.commits-summary ul {
+  margin: 6px 0 0 0;
+  padding-left: 20px;
+}
+
+.commits-summary li {
+  margin: 2px 0;
+}
+
+.pill.author {
+  background: rgba(90, 162, 255, 0.2);
+}
+
+.pill.date {
+  background: rgba(100, 200, 100, 0.15);
+  color: #4caf50;
+}
+
+.pill.file {
+  background: rgba(255, 180, 90, 0.15);
+  color: #ff9800;
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.markdown-body {
+  line-height: 1.6;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.markdown-body td, .markdown-body th {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.markdown-body code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.empty {
+  margin: 32px 0;
+  padding: 24px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* Inline diff styles for rendered diff view */
+.diff-added {
+  background: rgba(46, 160, 67, 0.35);
+  border-left: 4px solid #2ea043;
+  padding: 8px 12px;
+  margin: 4px 0;
+  display: block;
+  border-radius: 4px;
+}
+
+.diff-added::before {
+  content: "+ ";
+  color: #2ea043;
+  font-weight: bold;
+}
+
+.diff-deleted {
+  background: rgba(248, 81, 73, 0.35);
+  border-left: 4px solid #f85149;
+  padding: 8px 12px;
+  margin: 4px 0;
+  text-decoration: line-through;
+  opacity: 0.85;
+  display: block;
+  border-radius: 4px;
+}
+
+.diff-deleted::before {
+  content: "- ";
+  color: #f85149;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.rendered-diff .diff-added,
+.rendered-diff .diff-deleted {
+  display: block;
+}
+
+/* Button link styles */
+a.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  height: fit-content;
+}
+
+a.btn:hover {
+  opacity: 0.9;
+}
+
+/* Collapsible card styles */
+details.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 12px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+details.card > summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  flex-wrap: nowrap;
+}
+
+details.card > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.card > summary::marker {
+  display: none;
+  content: "";
+}
+
+.collapse-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: rgba(90, 162, 255, 0.12);
+  color: var(--accent);
+  font-weight: bold;
+  transition: transform 0.15s ease;
+}
+
+.collapse-indicator::before {
+  content: "▶";
+  font-size: 8px;
+}
+
+details.card[open] .collapse-indicator::before {
+  content: "▼";
+}
+
+.card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+details.card[open] .card-title {
+  font-size: 1.1rem;
+}
+
+/* Inline meta for compact collapsed view */
+.meta-inline {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.meta-inline .pill {
+  font-size: 0.7rem;
+  padding: 1px 6px;
+}
+
+.pill.commits-count {
+  background: rgba(156, 39, 176, 0.15);
+  color: #ab47bc;
+}
+
+.card-body {
+  padding: 12px 14px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Commit hash styling */
+.commit-hash {
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 0.8rem;
+  background: rgba(90, 162, 255, 0.15);
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+
+/* Summary section styling */
+.summary-section {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(90, 162, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.summary-section strong {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.summary-text {
+  margin: 6px 0 0 0;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.summary-text.muted {
+  color: var(--muted);
+  font-style: italic;
+}
+
+details.card:not([open]) {
+  border-color: var(--border);
+}
+
+details.card[open] {
+  border-color: var(--accent);
+}
+
+/* Active card highlight */
+.card-active {
+  box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Card navigation bar */
+.card-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  padding: 12px 0;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-counter {
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+  padding: 6px 12px;
+  background: rgba(90, 162, 255, 0.15);
+  border-radius: 8px;
+  color: var(--accent);
+}
+
+.btn-nav {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+/* Keyboard shortcut hints */
+.card-nav::after {
+  content: "↑/↓ or PgUp/PgDn to navigate • Enter/Space to toggle";
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
