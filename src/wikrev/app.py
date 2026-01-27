@@ -150,6 +150,14 @@ async def refresh():
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/clear-summaries")
+async def clear_summaries():
+    from .summarizer import CACHE_PATH
+    if CACHE_PATH.exists():
+        CACHE_PATH.unlink()
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/mark-reviewed")
 async def mark_reviewed():
     now = datetime.now().astimezone()
