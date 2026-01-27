@@ -232,6 +232,17 @@
             cards[currentIndex].open = !cards[currentIndex].open;
             nextCard();
           }
+        } else if (e.key === "d" || e.key === "D") {
+          // Toggle merged/separate diffs for current card
+          ensureSelection();
+          if (cards[currentIndex]) {
+            const toggle = cards[currentIndex].querySelector(".diff-split-toggle");
+            if (toggle) {
+              e.preventDefault();
+              toggle.checked = !toggle.checked;
+              toggle.dispatchEvent(new Event("change"));
+            }
+          }
         }
       });
     });

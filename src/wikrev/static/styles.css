@@ -579,7 +579,7 @@ details.card[open] {
 
 /* Keyboard shortcut hints */
 .card-nav::after {
-  content: "↑/↓ or PgUp/PgDn to navigate • Enter/Space to toggle";
+  content: "↑/↓ navigate • Enter toggle • Space toggle+next • D merge/split diff";
   margin-left: auto;
   font-size: 0.75rem;
   color: var(--muted);
