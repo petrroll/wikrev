@@ -84,16 +84,16 @@ wheels = [
 
 [[package]]
 name = "github-copilot-sdk"
-version = "0.1.14"
+version = "0.1.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/68/99/459985095288fb0471f07195d1710dd300f1b1307a425e88cbe8d3b977bd/github_copilot_sdk-0.1.14.tar.gz", hash = "sha256:fd46a3b4f0cc6cf3126097f0fbaa8347f7e7e7e9e549259df86f3f7db3ec29d1", size = 86769, upload-time = "2026-01-19T15:36:19.254Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/00/be64b9b33015d5e79fb5e5e95d871484e79a907b3792935b855ab40308ce/github_copilot_sdk-0.1.18.tar.gz", hash = "sha256:b2d56d40c0f48e81f2899d32fb4a8d2b8df22620913547da93fddf9b2f368e9e", size = 81318, upload-time = "2026-01-24T18:09:57.617Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/af/fcac358c89621ab5e1b39af5926a1022dc05fe71f5c728e840d9c9a5cdec/github_copilot_sdk-0.1.14-py3-none-any.whl", hash = "sha256:6e812c14001897f1bec576ac0b304898ac6bbe7998e1f93937d85b058f7f655d", size = 30426, upload-time = "2026-01-19T15:36:18.169Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/0f/f832b32bca9d89a26a2b810c69fdc37ac925e34855ee93a11bb3d90ca2b7/github_copilot_sdk-0.1.18-py3-none-any.whl", hash = "sha256:99cfdf4d4d0da6d92d5bf36a952546157785df83d6b0783b3f7a8e93a2762171", size = 33740, upload-time = "2026-01-24T18:09:55.696Z" },
 ]
 
 [[package]]
@@ -128,11 +128,11 @@ wheels = [
 
 [[package]]
 name = "markdown"
-version = "3.10"
+version = "3.10.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7d/ab/7dd27d9d863b3376fcf23a5a13cb5d024aed1db46f963f1b5735ae43b3be/markdown-3.10.tar.gz", hash = "sha256:37062d4f2aa4b2b6b32aefb80faa300f82cc790cb949a35b8caede34f2b68c0e", size = 364931, upload-time = "2025-11-03T19:51:15.007Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/b1/af95bcae8549f1f3fd70faacb29075826a0d689a27f232e8cee315efa053/markdown-3.10.1.tar.gz", hash = "sha256:1c19c10bd5c14ac948c53d0d762a04e2fa35a6d58a6b7b1e6bfcbe6fefc0001a", size = 365402, upload-time = "2026-01-21T18:09:28.206Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/81/54e3ce63502cd085a0c556652a4e1b919c45a446bd1e5300e10c44c8c521/markdown-3.10-py3-none-any.whl", hash = "sha256:b5b99d6951e2e4948d939255596523444c0e677c669700b1d17aa4a8a464cb7c", size = 107678, upload-time = "2025-11-03T19:51:13.887Z" },
+    { url = "https://files.pythonhosted.org/packages/59/1b/6ef961f543593969d25b2afe57a3564200280528caa9bd1082eecdd7b3bc/markdown-3.10.1-py3-none-any.whl", hash = "sha256:867d788939fe33e4b736426f5b9f651ad0c0ae0ecf89df0ca5d1176c70812fe3", size = 107684, upload-time = "2026-01-21T18:09:27.203Z" },
 ]
 
 [[package]]
