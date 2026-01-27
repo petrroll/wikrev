@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import difflib
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -255,22 +254,9 @@ def _extract_file_diff(full_diff: str, file_path: str) -> str:
 
 
 def _commit_patch(repo_path: Path, commit: str, file_path: str) -> str:
-    # Get the full commit diff and extract lines for this file
+    """Get the diff for a specific file from a specific commit."""
     full_diff = _run_git(["show", "-m", "--no-color", "--format=", "--patch", commit], repo_path)
     return _extract_file_diff(full_diff, file_path)
-
-
-def _unified_diff_text(file_path: str, base_content: str, head_content: str) -> str:
-    base_lines = base_content.splitlines(keepends=True)
-    head_lines = head_content.splitlines(keepends=True)
-    diff = difflib.unified_diff(
-        base_lines,
-        head_lines,
-        fromfile=f"a/{file_path}",
-        tofile=f"b/{file_path}",
-        lineterm="",
-    )
-    return "".join(diff)
 
 
 def get_change_details(repo_path: Path, groups: Iterable[ChangeGroup]) -> List[ChangeDetail]:
@@ -283,10 +269,8 @@ def get_change_details(repo_path: Path, groups: Iterable[ChangeGroup]) -> List[C
         base_content = _show_file(repo_path, base_ref, group.file_path)
         head_content = _show_file(repo_path, head_ref, group.file_path)
         
-        # Merged diff (base -> head) - use git diff, fallback to difflib
+        # Merged diff (base -> head)
         merged_diff_text = _diff_file(repo_path, base_ref, head_ref, group.file_path)
-        if not merged_diff_text.strip() and (base_content or head_content):
-            merged_diff_text = _unified_diff_text(group.file_path, base_content, head_content)
         
         # Split diff (individual commit patches) - only compute if multiple commits
         if len(group.commits) > 1:
