@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -128,33 +129,71 @@ def get_commits_since(repo_path: Path, since: datetime) -> List[CommitInfo]:
     return _parse_log(output)
 
 
-def _is_excluded(file_path: str, excluded_folders: List[str], repo_prefix: str = "") -> bool:
-    """Check if a file path is within any excluded folder.
+def _should_exclude(file_path: str, path_filters: List[str], repo_prefix: str = "") -> bool:
+    """Check if a file path should be excluded based on glob pattern filters.
     
     Args:
         file_path: Path from git (relative to git root)
-        excluded_folders: Folders to exclude (relative to repo_path)
+        path_filters: Glob patterns to filter files. Prefix with ! to negate (include).
+                     File-specific patterns override folder patterns.
         repo_prefix: Path prefix from git root to repo_path (e.g., 'Trouter/')
+    
+    Returns:
+        True if the file should be excluded, False otherwise.
+    
+    Pattern matching rules:
+        - Patterns without ! exclude matching files
+        - Patterns with ! prefix include matching files (override exclusions)
+        - More specific patterns (file-level) override less specific (folder-level)
+        - Patterns are processed in order; later patterns can override earlier ones
     """
+    if not path_filters:
+        return False
+    
     normalized = file_path.replace("\\", "/")
     # Strip the repo prefix to get path relative to repo_path
     if repo_prefix and normalized.startswith(repo_prefix):
         normalized = normalized[len(repo_prefix):]
-    for folder in excluded_folders:
-        folder_prefix = folder.rstrip("/") + "/"
-        if normalized.startswith(folder_prefix) or normalized == folder.rstrip("/"):
-            return True
-    return False
+    
+    # Track exclusion state - None means no filter matched yet
+    excluded = None
+    
+    for pattern in path_filters:
+        is_negation = pattern.startswith("!")
+        glob_pattern = pattern[1:] if is_negation else pattern
+        
+        # Check if pattern matches the file path
+        # Support both direct match and directory prefix match
+        matches = False
+        
+        # Try direct glob match
+        if fnmatch.fnmatch(normalized, glob_pattern):
+            matches = True
+        # Try matching as directory prefix (e.g., "docs/*" or "docs/**")
+        elif fnmatch.fnmatch(normalized, glob_pattern.rstrip("/") + "/*"):
+            matches = True
+        elif fnmatch.fnmatch(normalized, glob_pattern.rstrip("/") + "/**"):
+            matches = True
+        # Handle simple folder name without glob (backward compat)
+        elif not any(c in glob_pattern for c in "*?["):
+            folder_prefix = glob_pattern.rstrip("/") + "/"
+            if normalized.startswith(folder_prefix) or normalized == glob_pattern.rstrip("/"):
+                matches = True
+        
+        if matches:
+            excluded = not is_negation
+    
+    return excluded if excluded is not None else False
 
 
-def build_change_entries(commits: Iterable[CommitInfo], excluded_folders: Optional[List[str]] = None, repo_prefix: str = "") -> List[ChangeEntry]:
+def build_change_entries(commits: Iterable[CommitInfo], path_filters: Optional[List[str]] = None, repo_prefix: str = "") -> List[ChangeEntry]:
     entries: List[ChangeEntry] = []
-    excluded = excluded_folders or []
+    filters = path_filters or []
     for commit in commits:
         for file_path in commit.files:
             if not _is_markdown(file_path):
                 continue
-            if _is_excluded(file_path, excluded, repo_prefix):
+            if _should_exclude(file_path, filters, repo_prefix):
                 continue
             entries.append(
                 ChangeEntry(

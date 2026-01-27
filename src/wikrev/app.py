@@ -109,7 +109,7 @@ async def index(request: Request, weeks_back: int = 0):
     repo_prefix = _get_repo_prefix(config.repo_path)
     
     commits = get_commits_since(config.repo_path, since)
-    entries = build_change_entries(commits, config.excluded_folders, repo_prefix)
+    entries = build_change_entries(commits, config.path_filters, repo_prefix)
     groups = group_consecutive(entries)
     details = get_change_details(config.repo_path, groups)
 
@@ -192,7 +192,7 @@ async def get_summary(request: Request, summary_key: str, weeks_back: int = 0):
     since = config.last_run - timedelta(weeks=weeks_back)
     commits = get_commits_since(config.repo_path, since)
     repo_prefix = _get_repo_prefix(config.repo_path)
-    entries = build_change_entries(commits, config.excluded_folders, repo_prefix)
+    entries = build_change_entries(commits, config.path_filters, repo_prefix)
     groups = group_consecutive(entries)
     detail_map = {g.group_id: g for g in groups}
     if summary_key not in detail_map:

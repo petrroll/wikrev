@@ -25,7 +25,7 @@ class AppConfig:
     copilot_model: str
     default_weekday: str
     default_time: str
-    excluded_folders: List[str]
+    path_filters: List[str]  # Glob patterns; prefix with ! to negate (include)
     sort_order: str  # "newest_first" or "oldest_first"
 
 
@@ -39,7 +39,7 @@ DEFAULT_CONFIG = {
     "copilot_model": "gpt-5",
     "default_weekday": "tuesday",
     "default_time": "15:00",
-    "excluded_folders": [],
+    "path_filters": [],
     "sort_order": "newest_first"
 }
 
@@ -96,7 +96,7 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
         copilot_model=str(raw.get("copilot_model", "gpt-5")),
         default_weekday=str(raw.get("default_weekday", "tuesday")),
         default_time=str(raw.get("default_time", "15:00")),
-        excluded_folders=list(raw.get("excluded_folders", [])),
+        path_filters=list(raw.get("path_filters", raw.get("excluded_folders", []))),
         sort_order=str(raw.get("sort_order", "newest_first")),
     )
 
