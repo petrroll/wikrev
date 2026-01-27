@@ -169,15 +169,26 @@ def build_change_entries(commits: Iterable[CommitInfo], excluded_folders: Option
 
 
 def group_consecutive(entries: List[ChangeEntry]) -> List[ChangeGroup]:
+    """Group changes by author and file path.
+    
+    Changes to the same file by the same author are merged even if there are
+    commits to other files in between.
+    """
     groups: List[ChangeGroup] = []
+    # Track groups by (author, file_path) to merge non-consecutive changes per file
+    group_index: dict[tuple[str, str], ChangeGroup] = {}
+    
     for entry in entries:
-        if groups and groups[-1].author == entry.author and groups[-1].file_path == entry.file_path:
-            group = groups[-1]
+        key = (entry.author, entry.file_path)
+        if key in group_index:
+            # Merge with existing group for this author+file
+            group = group_index[key]
             group.oldest_commit = entry.commit
             group.oldest_date = entry.date
             group.subjects.append(entry.subject)
             group.commits.append(entry.commit)
         else:
+            # Create new group
             group = ChangeGroup(
                 group_id=f"{entry.file_path}|{entry.commit}",
                 file_path=entry.file_path,
@@ -190,6 +201,7 @@ def group_consecutive(entries: List[ChangeEntry]) -> List[ChangeGroup]:
                 commits=[entry.commit],
             )
             groups.append(group)
+            group_index[key] = group
     return groups
 
 
