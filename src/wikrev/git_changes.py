@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -42,7 +43,8 @@ class ChangeGroup:
 @dataclass
 class ChangeDetail:
     group: ChangeGroup
-    diff_text: str
+    diff_text: str  # Merged diff (base -> head)
+    split_diff_text: str  # Individual commit patches concatenated
     base_content: str
     head_content: str
 
@@ -204,41 +206,29 @@ def _get_parent_or_empty_tree(repo_path: Path, commit: str) -> str:
 
 
 def _show_file(repo_path: Path, ref: str, file_path: str) -> str:
-    """Get file content at a specific git ref."""
+    """Get file content at a specific git ref. Returns empty string if file doesn't exist."""
     try:
-        # Git show uses the path as stored in the tree, no need for shell escaping
-        result = _run_git(["show", f"{ref}:{file_path}"], repo_path)
-        return result
-    except subprocess.CalledProcessError as e:
-        # Log but don't fail - file might not exist at that ref
-        import sys
-        print(f"DEBUG: _show_file failed for {ref}:{file_path} - {e}", file=sys.stderr)
+        return _run_git(["show", f"{ref}:{file_path}"], repo_path)
+    except subprocess.CalledProcessError:
         return ""
 
 
 def _diff_file(repo_path: Path, base_ref: str, head_ref: str, file_path: str) -> str:
-    diff_text = _run_git(["diff", "--no-color", base_ref, head_ref, "--", file_path], repo_path)
+    """Get unified diff between base and head refs for a file."""
+    # file_path is relative to git root, so we need to run from git root
+    try:
+        git_root = _run_git(["rev-parse", "--show-toplevel"], repo_path).strip()
+        cwd = Path(git_root)
+    except subprocess.CalledProcessError:
+        cwd = repo_path
+    
+    # Try standard diff first
+    diff_text = _run_git(["diff", "--no-color", base_ref, head_ref, "--", file_path], cwd)
     if diff_text.strip():
         return diff_text
-
-    diff_text = _run_git(
-        [
-            "log",
-            "--follow",
-            "--no-color",
-            "--format=",
-            "--patch",
-            f"{base_ref}..{head_ref}",
-            "--",
-            file_path,
-        ],
-        repo_path,
-    )
-    if diff_text.strip():
-        return diff_text
-
-    # Fallback: show latest commit patch for the file when range diff is empty.
-    return _run_git(["show", "--no-color", "--format=", "--patch", head_ref, "--", file_path], repo_path)
+    
+    # Fallback: get patch from the head commit directly (handles merge commits)
+    return _run_git(["show", "--no-color", "--format=", "--patch", head_ref, "--", file_path], cwd)
 
 
 def _extract_file_diff(full_diff: str, file_path: str) -> str:
@@ -271,8 +261,6 @@ def _commit_patch(repo_path: Path, commit: str, file_path: str) -> str:
 
 
 def _unified_diff_text(file_path: str, base_content: str, head_content: str) -> str:
-    import difflib
-
     base_lines = base_content.splitlines(keepends=True)
     head_lines = head_content.splitlines(keepends=True)
     diff = difflib.unified_diff(
@@ -290,18 +278,28 @@ def get_change_details(repo_path: Path, groups: Iterable[ChangeGroup]) -> List[C
     for group in groups:
         base_ref = _get_parent_or_empty_tree(repo_path, group.oldest_commit)
         head_ref = group.newest_commit
-        patches: List[str] = []
-        for commit in group.commits:
-            patch = _commit_patch(repo_path, commit, group.file_path)
-            if patch.strip():
-                patches.append(patch)
-
-        diff_text = "\n".join(patches).strip()
-        if not diff_text:
-            diff_text = _diff_file(repo_path, base_ref, head_ref, group.file_path)
+        
+        # Get base and head content
         base_content = _show_file(repo_path, base_ref, group.file_path)
         head_content = _show_file(repo_path, head_ref, group.file_path)
-        if not diff_text.strip() and (base_content or head_content):
-            diff_text = _unified_diff_text(group.file_path, base_content, head_content)
-        details.append(ChangeDetail(group=group, diff_text=diff_text, base_content=base_content, head_content=head_content))
+        
+        # Merged diff (base -> head) - use git diff, fallback to difflib
+        merged_diff_text = _diff_file(repo_path, base_ref, head_ref, group.file_path)
+        if not merged_diff_text.strip() and (base_content or head_content):
+            merged_diff_text = _unified_diff_text(group.file_path, base_content, head_content)
+        
+        # Split diff (individual commit patches) - only compute if multiple commits
+        if len(group.commits) > 1:
+            patches = [_commit_patch(repo_path, c, group.file_path) for c in group.commits]
+            split_diff_text = "\n".join(p for p in patches if p.strip())
+        else:
+            split_diff_text = merged_diff_text  # Same as merged for single commit
+        
+        details.append(ChangeDetail(
+            group=group,
+            diff_text=merged_diff_text,
+            split_diff_text=split_diff_text,
+            base_content=base_content,
+            head_content=head_content
+        ))
     return details

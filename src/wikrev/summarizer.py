@@ -77,7 +77,9 @@ async def summarize_with_copilot(diff_text: str, model: str) -> str:
     
     prompt = (
         "Summarize the following markdown diff in 1-2 sentences. "
-        "Focus on user-visible changes.\n\n"
+        "Focus on user-visible changes. If content appears in both deletions (-) and additions (+) "
+        "with the same text, it may have been moved or reformatted rather than truly added or removed. "
+        "Be precise about whether content was added, removed, moved, or modified.\n\n"
         f"{diff_text}"
     )
 

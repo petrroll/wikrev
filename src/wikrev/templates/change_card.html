@@ -46,10 +46,18 @@
     </div>
 
     <pre class="diff-source" hidden>{{ change.diff_text }}</pre>
+    <pre class="diff-source-split" hidden>{{ change.split_diff_text }}</pre>
 
     <details class="panel" open>
-      <summary>Code diff</summary>
-      <div class="rendered diff2html"></div>
+      <summary class="panel-summary-with-toggle">
+        <span>Code diff</span>
+        <label class="toggle-label diff-view-toggle" onclick="event.stopPropagation()">
+          <input type="checkbox" class="diff-split-toggle" />
+          <span>Show separately</span>
+        </label>
+      </summary>
+      <div class="rendered diff2html diff-merged"></div>
+      <div class="rendered diff2html-split" hidden></div>
     </details>
 
     <details class="panel">

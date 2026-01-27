@@ -123,6 +123,7 @@ async def index(request: Request, weeks_back: int = 0):
                 "group": detail.group,
                 "title": title,
                 "diff_text": detail.diff_text,
+                "split_diff_text": detail.split_diff_text,
                 "rendered_diff": _render_inline_diff(detail.base_content, detail.head_content),
                 "rendered_final": _render_markdown(detail.head_content),
                 "summary": summary,

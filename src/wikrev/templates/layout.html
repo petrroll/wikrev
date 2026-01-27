@@ -43,22 +43,51 @@
   </main>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Initialize diff2html
-      document.querySelectorAll(".diff2html").forEach((container) => {
+      // Initialize diff2html for each card
+      document.querySelectorAll(".diff2html.diff-merged").forEach((container) => {
         const card = container.closest(".card");
-        const source = card ? card.querySelector(".diff-source") : null;
-        if (!source) return;
-        const diffText = source.textContent || "";
-        if (!diffText.trim()) {
+        if (!card) return;
+        
+        const source = card.querySelector(".diff-source");
+        const splitSource = card.querySelector(".diff-source-split");
+        const splitContainer = card.querySelector(".diff2html-split");
+        const toggle = card.querySelector(".diff-split-toggle");
+        const toggleWrapper = card.querySelector(".diff-view-toggle");
+        
+        const mergedDiffText = source?.textContent?.trim() || "";
+        const splitDiffText = splitSource?.textContent?.trim() || mergedDiffText;
+        
+        if (!mergedDiffText && !splitDiffText) {
           container.innerHTML = "<p>No diff available.</p>";
+          if (toggleWrapper) toggleWrapper.style.display = "none";
           return;
         }
-        const html = Diff2Html.html(diffText, {
-          drawFileList: false,
-          matching: "lines",
-          outputFormat: "line-by-line",
+        
+        const diffOptions = { drawFileList: false, matching: "lines", outputFormat: "line-by-line" };
+        
+        // Render merged diff (net changes from base to head)
+        container.innerHTML = Diff2Html.html(mergedDiffText || splitDiffText, diffOptions);
+        
+        // Count diffs in split view to decide if toggle is needed
+        const diffCount = (splitDiffText.match(/^diff --git /gm) || []).length;
+        if (diffCount <= 1) {
+          if (toggleWrapper) toggleWrapper.style.display = "none";
+          return;
+        }
+        
+        // Render split diffs (individual commit patches)
+        if (splitContainer) {
+          const diffs = splitDiffText.split(/(?=^diff --git )/m).filter(d => d.trim());
+          splitContainer.innerHTML = diffs
+            .map(diff => `<div class="diff-section">${Diff2Html.html(diff, diffOptions)}</div>`)
+            .join('');
+        }
+        
+        // Toggle between merged and split views
+        toggle?.addEventListener("change", () => {
+          container.hidden = toggle.checked;
+          splitContainer.hidden = !toggle.checked;
         });
-        container.innerHTML = html;
       });
 
       // Card navigation

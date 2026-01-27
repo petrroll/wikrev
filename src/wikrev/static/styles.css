@@ -143,8 +143,42 @@ pre code {
   font-size: 0.85rem;
 }
 
-.d2h-file-header {
-  display: none;
+/* Merged diff view - hide all file headers and collapse wrappers into one continuous block */
+.diff-merged .d2h-file-header {
+  display: none !important;
+}
+
+.diff-merged .d2h-wrapper,
+.diff-merged .d2h-file-wrapper {
+  --d2h-border-color: transparent;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Add subtle separator between diff blocks in merged view */
+.diff-merged .d2h-wrapper > .d2h-file-wrapper + .d2h-file-wrapper,
+.diff-merged .d2h-file-wrapper + .d2h-file-wrapper {
+  border-top: 1px dashed var(--border) !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+}
+
+.diff-merged .d2h-files-diff {
+  display: block !important;
+}
+
+/* Split view - show file headers and keep wrappers visually distinct */
+.diff2html-split .d2h-file-header {
+  display: block !important;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
 }
 
 .d2h-diff-table {
@@ -160,11 +194,6 @@ pre code {
   min-width: auto;
   color: var(--muted);
   opacity: 0.6;
-}
-
-/* Hide the second line number column in line-by-line mode */
-.d2h-code-side-linenumber {
-  display: none;
 }
 
 /* Remove heavy borders between rows */
@@ -191,6 +220,51 @@ pre code {
   white-space: pre-wrap;
   word-break: break-word;
   border: none;
+}
+
+/* Panel summary with inline toggle */
+.panel-summary-with-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Diff view toggle */
+.diff-view-toggle {
+  margin-left: auto;
+  font-weight: normal;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.toggle-label:hover {
+  color: var(--text);
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.diff-section {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diff-section:last-child {
+  margin-bottom: 0;
 }
 
 .summary {
