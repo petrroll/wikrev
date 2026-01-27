@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markdown import markdown
 
-from .config import CONFIG_PATH, init_config, load_config, save_last_run
+from .config import CONFIG_PATH, init_config, load_config, save_last_run, save_sort_order
 from .git_changes import build_change_entries, get_change_details, get_commits_since, git_pull, group_consecutive, _get_repo_prefix
 from .summarizer import get_cached_summary, set_cached_summary, summarize_with_copilot
 
@@ -131,6 +131,10 @@ async def index(request: Request, weeks_back: int = 0):
             }
         )
 
+    # Apply sort order
+    if config.sort_order == "oldest_first":
+        change_cards = list(reversed(change_cards))
+
     return TEMPLATES.TemplateResponse(
         "index.html",
         {
@@ -140,6 +144,7 @@ async def index(request: Request, weeks_back: int = 0):
             "weeks_back": weeks_back,
             "changes": change_cards,
             "enable_copilot": config.enable_copilot,
+            "sort_order": config.sort_order,
         },
     )
 
@@ -163,6 +168,14 @@ async def clear_summaries():
 async def mark_reviewed():
     now = datetime.now().astimezone()
     save_last_run(now)
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/toggle-sort-order")
+async def toggle_sort_order():
+    config = load_config()
+    new_order = "oldest_first" if config.sort_order == "newest_first" else "newest_first"
+    save_sort_order(new_order)
     return RedirectResponse(url="/", status_code=303)
 
 

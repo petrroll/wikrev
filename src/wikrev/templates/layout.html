@@ -24,6 +24,11 @@
         <form method="post" action="/mark-reviewed">
           <button class="btn btn-secondary" type="submit">Mark Reviewed (set now)</button>
         </form>
+        <form method="post" action="/toggle-sort-order">
+          <button class="btn btn-secondary" type="submit" title="Toggle sort order">
+            {% if sort_order == "newest_first" %}↓ Newest First{% else %}↑ Oldest First{% endif %}
+          </button>
+        </form>
         <a href="/?weeks_back={{ (weeks_back or 0) + 1 }}" class="btn btn-secondary">← Older</a>
         {% if weeks_back and weeks_back > 0 %}
         <a href="/?weeks_back={{ weeks_back - 1 }}" class="btn btn-secondary">Newer →</a>

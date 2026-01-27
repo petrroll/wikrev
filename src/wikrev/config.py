@@ -26,6 +26,7 @@ class AppConfig:
     default_weekday: str
     default_time: str
     excluded_folders: List[str]
+    sort_order: str  # "newest_first" or "oldest_first"
 
 
 # Config is loaded from .wikrev directory in current working directory
@@ -38,7 +39,8 @@ DEFAULT_CONFIG = {
     "copilot_model": "gpt-5",
     "default_weekday": "tuesday",
     "default_time": "15:00",
-    "excluded_folders": []
+    "excluded_folders": [],
+    "sort_order": "newest_first"
 }
 
 
@@ -95,10 +97,20 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
         default_weekday=str(raw.get("default_weekday", "tuesday")),
         default_time=str(raw.get("default_time", "15:00")),
         excluded_folders=list(raw.get("excluded_folders", [])),
+        sort_order=str(raw.get("sort_order", "newest_first")),
     )
 
 
 def save_last_run(value: datetime, path: Path = CONFIG_PATH) -> None:
     raw = json.loads(path.read_text(encoding="utf-8"))
     raw["last_run"] = value.astimezone().isoformat()
+    path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+
+
+def save_sort_order(value: str, path: Path = CONFIG_PATH) -> None:
+    """Save the sort order preference to config."""
+    if value not in ("newest_first", "oldest_first"):
+        raise ValueError(f"Invalid sort_order: {value}")
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["sort_order"] = value
     path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
