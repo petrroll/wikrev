@@ -1,8 +1,12 @@
 # WikRev - Wiki Reviewer
 
-A simple web app to review recent markdown changes in a git-based wiki with diffs, previews, and optional AI summaries.
+A simple web app to review recent markdown changes in a git-based wiki with diffs, collapsing consecutive edits by the same person, previews, and optional AI summaries. Fast keyboard based navigation included!
+
+Marvelous for periodic team overviews what's new in your knowledge base :)
 
 > **Note:** This project was mostly AI-generated.
+
+![WikRev Screenshot](docs/showcase.png)
 
 ## Motivation
 
