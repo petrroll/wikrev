@@ -13,7 +13,7 @@
   <header class="header">
     <div class="container">
       <h1>WikRev - Wiki Reviewer</h1>
-      <p>Review all wiki changes since <strong>{{ last_run }}</strong></p>
+      <p>Fetched at <strong>{{ fetch_time.strftime('%Y-%m-%d %H:%M') }}</strong> ({{ fetch_time|timeago }}) · Changes since <strong>{{ last_run.strftime('%Y-%m-%d %H:%M') }}</strong> ({{ last_run|timeago }})</p>
       <div class="actions">
         <form method="post" action="/refresh">
           <button class="btn" type="submit">Pull & Refresh</button>
@@ -39,8 +39,8 @@
   <main class="container">
     <nav class="card-nav" id="card-nav">
       <span class="nav-counter"><span id="current-card">1</span> / <span id="total-cards">0</span></span>
-      <button class="btn btn-nav" id="prev-card" title="Previous (Page Up / ↑)">↑ Prev</button>
-      <button class="btn btn-nav" id="next-card" title="Next (Page Down / ↓)">↓ Next</button>
+      <button class="btn btn-nav" id="prev-card" title="Previous (Page Up / k)">k Prev</button>
+      <button class="btn btn-nav" id="next-card" title="Next (Page Down / j)">j Next</button>
       <button class="btn btn-nav" id="collapse-all" title="Collapse all cards">Collapse All</button>
       <button class="btn btn-nav" id="expand-all" title="Expand all cards">Expand All</button>
     </nav>
@@ -211,10 +211,10 @@
         // Skip if user is typing in an input
         if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
         
-        if (e.key === "PageDown" || e.key === "ArrowDown") {
+        if (e.key === "PageDown" || e.key === "j") {
           e.preventDefault();
           nextCard();
-        } else if (e.key === "PageUp" || e.key === "ArrowUp") {
+        } else if (e.key === "PageUp" || e.key === "k") {
           e.preventDefault();
           prevCard();
         } else if (e.key === "Enter") {

@@ -22,6 +22,29 @@ BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 TEMPLATES.env.filters["urlencode"] = lambda value: quote(str(value), safe="")
 
+
+def _timeago(dt: datetime) -> str:
+    """Return a human-readable 'time ago' string."""
+    now = datetime.now().astimezone()
+    delta = now - dt
+    seconds = int(delta.total_seconds())
+    if seconds < 60:
+        return "just now"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h ago"
+    days = hours // 24
+    if days < 7:
+        return f"{days}d ago"
+    weeks = days // 7
+    return f"{weeks}w ago"
+
+
+TEMPLATES.env.filters["timeago"] = _timeago
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
@@ -135,12 +158,15 @@ async def index(request: Request, weeks_back: int = 0):
     if config.sort_order == "oldest_first":
         change_cards = list(reversed(change_cards))
 
+    now = datetime.now().astimezone()
+
     return TEMPLATES.TemplateResponse(
         "index.html",
         {
             "request": request,
             "config_path": CONFIG_PATH,
             "last_run": since,
+            "fetch_time": now,
             "weeks_back": weeks_back,
             "changes": change_cards,
             "enable_copilot": config.enable_copilot,
