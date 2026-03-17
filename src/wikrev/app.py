@@ -16,6 +16,7 @@ from markdown import markdown
 
 from .config import CONFIG_PATH, init_config, load_config, save_last_run, save_sort_order
 from .git_changes import build_change_entries, get_change_details, get_commits_since, git_pull, group_consecutive, _get_repo_prefix
+from .runtime_env import get_external_repo_venv_warning
 from .summarizer import get_cached_summary, set_cached_summary, summarize_with_copilot
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -47,6 +48,16 @@ TEMPLATES.env.filters["timeago"] = _timeago
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+
+@app.on_event("startup")
+async def startup_pull():
+    """Auto-pull the wiki repo on startup (equivalent to Pull & Refresh button)."""
+    try:
+        config = load_config()
+        git_pull(config.repo_path)
+    except Exception:
+        pass  # Don't block startup if pull fails
 
 
 def _extract_title(markdown_text: str | None, file_path: str) -> str:
@@ -261,6 +272,10 @@ def main() -> None:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
         return
+
+    runtime_warning = get_external_repo_venv_warning()
+    if runtime_warning:
+        print(runtime_warning, file=sys.stderr)
 
     if not CONFIG_PATH.exists():
         print(f"Error: Config file not found: {CONFIG_PATH}", file=sys.stderr)

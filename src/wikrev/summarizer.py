@@ -1,24 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import traceback
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from .config import WIKREV_DIR
 
 logger = logging.getLogger(__name__)
 
 CACHE_PATH = WIKREV_DIR / "summary_cache.json"
-
-
-@dataclass
-class SummaryResult:
-    text: str
-    from_cache: bool
 
 
 def _load_cache() -> dict:
@@ -43,100 +33,73 @@ def set_cached_summary(key: str, summary: str) -> None:
     _save_cache(cache)
 
 
-def _find_copilot_cli_path() -> str:
-    """Find the copilot CLI executable path, handling Windows quirks."""
-    import shutil
-    import sys
-    
-    # Try to find copilot in PATH
-    copilot_path = shutil.which("copilot")
-    if copilot_path:
-        logger.debug("Found copilot at: %s", copilot_path)
-        return copilot_path
-    
-    # On Windows, also check for .cmd/.bat variants
-    if sys.platform == "win32":
-        for ext in [".cmd", ".bat", ".exe"]:
-            path = shutil.which(f"copilot{ext}")
-            if path:
-                logger.debug("Found copilot at: %s", path)
-                return path
-    
-    # Fallback to default
-    return "copilot"
+def _build_summary_prompt(diff_text: str) -> str:
+    return (
+        "Summarize the following markdown diff in 1-2 sentences. "
+        "Focus on user-visible changes. If content appears in both deletions (-) "
+        "and additions (+) with the same text, it may have been moved or "
+        "reformatted rather than truly added or removed. Be precise about "
+        "whether content was added, removed, moved, or modified.\n\n"
+        f"{diff_text}"
+    )
+
+
+def _approve_read_only_permissions(request: Any, invocation: dict[str, str]) -> Any:
+    from copilot import PermissionRequestResult
+
+    del invocation
+
+    kind = getattr(getattr(request, "kind", None), "value", None)
+    if kind == "read" or getattr(request, "read_only", False):
+        return PermissionRequestResult(kind="approved")
+
+    return PermissionRequestResult(
+        kind="denied-no-approval-rule-and-could-not-request-from-user",
+        message="WikRev only approves read-only Copilot permissions for summaries.",
+    )
 
 
 async def summarize_with_copilot(diff_text: str, model: str) -> str:
     try:
         from copilot import CopilotClient
     except Exception as exc:
-        logger.error("Failed to import Copilot SDK: %s\n%s", exc, traceback.format_exc())
+        logger.exception("Failed to import Copilot SDK")
         raise RuntimeError(
             "Copilot SDK is not available. Install the GitHub Copilot SDK for Python or disable summaries."
         ) from exc
-    
-    prompt = (
-        "Summarize the following markdown diff in 1-2 sentences. "
-        "Focus on user-visible changes. If content appears in both deletions (-) and additions (+) "
-        "with the same text, it may have been moved or reformatted rather than truly added or removed. "
-        "Be precise about whether content was added, removed, moved, or modified.\n\n"
-        f"{diff_text}"
-    )
 
-    client = None
-    session = None
+    client = CopilotClient()
+    response_event = None
     try:
-        # Find the copilot CLI path (handles Windows .cmd/.bat files)
-        cli_path = _find_copilot_cli_path()
-        logger.debug("Creating CopilotClient with cli_path: %s", cli_path)
-        client = CopilotClient({"cli_path": cli_path})
-        
-        logger.debug("Starting CopilotClient...")
         await client.start()
-        
-        logger.debug("Creating session with model: %s", model)
-        session = await client.create_session({"model": model})
-
-        done = asyncio.Event()
-        response_text = {"value": ""}
-        error_holder = {"error": None}
-
-        def on_event(event):
-            logger.debug("Received event: %s", event.type)
-            try:
-                if event.type.value == "assistant.message":
-                    response_text["value"] = event.data.content
-                elif event.type.value == "session.idle":
-                    done.set()
-                elif event.type.value == "error":
-                    error_holder["error"] = getattr(event, 'data', event)
-                    logger.error("Copilot error event: %s", event)
-                    done.set()
-            except Exception as e:
-                logger.error("Error in on_event handler: %s\n%s", e, traceback.format_exc())
-                error_holder["error"] = e
-                done.set()
-
-        session.on(on_event)
-        logger.debug("Sending prompt to Copilot...")
-        await session.send({"prompt": prompt})
-        await done.wait()
-
-        if error_holder["error"]:
-            raise RuntimeError(f"Copilot returned an error: {error_holder['error']}")
-
-        return response_text["value"].strip()
-    except Exception as exc:
-        logger.error("Error during Copilot summarization: %s\n%s", exc, traceback.format_exc())
+        async with await client.create_session(
+            {
+                "model": model,
+                "on_permission_request": _approve_read_only_permissions,
+                "system_message": {
+                    "mode": "append",
+                    "content": (
+                        "You are summarizing the diff provided in the prompt. "
+                        "Do not use shell, write, or network tools. If you need "
+                        "extra context, only use read-only tools."
+                    ),
+                },
+            }
+        ) as session:
+            response_event = await session.send_and_wait(
+                {"prompt": _build_summary_prompt(diff_text)},
+                timeout=120,
+            )
+    except Exception:
+        logger.exception("Error during Copilot summarization")
         raise
     finally:
         try:
-            if session:
-                await session.destroy()
-        except Exception as e:
-            logger.warning("Error destroying session: %s", e)
-        try:
-            if client:
-                await client.stop()
-        except Exception as e:
-            logger.warning("Error stopping client: %s", e)
+            await client.stop()
+        except Exception as exc:
+            logger.warning("Error stopping Copilot client: %s", exc)
+
+    response_text = getattr(getattr(response_event, "data", None), "content", "") or ""
+    if not response_text.strip():
+        raise RuntimeError("Copilot did not return a summary.")
+    return response_text.strip()

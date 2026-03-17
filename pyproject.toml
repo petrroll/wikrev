@@ -1,16 +1,16 @@
 [project]
 name = "wikrev"
-version = "0.1.2"
+version = "0.1.3"
 description = "WikRev - Wiki Reviewer: Review recent wiki changes with diffs and previews."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
     "jinja2>=3.1.4",
     "markdown>=3.6",
     "pydantic>=2.7.0",
-    "github-copilot-sdk>=0.1.0",
+    "github-copilot-sdk>=0.1.32",
 ]
 
 [project.scripts]

@@ -15,11 +15,20 @@ Our team does weekly reviews of all wiki changes to share knowledge and stay ali
 ## Quick Start
 
 ```bash
-uv pip install -e .
+uv sync
 uv run wikrev
 ```
 
 Open http://127.0.0.1:8010
+
+Use `uv run wikrev` from this checkout when you want WikRev to use the repo's
+`.venv`. A plain `wikrev` command may come from a separate `uv tool` install
+with its own isolated environment.
+
+If you change dependencies and usually launch WikRev via `uv tool`, refresh that
+tool environment too, for example with `uv tool upgrade wikrev --reinstall` or
+`uv tool install -e . --force`. Otherwise, run `uv run wikrev` from the repo
+root.
 
 ## Features
 
@@ -40,5 +49,5 @@ Edit `config.json`:
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Git
