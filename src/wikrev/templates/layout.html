@@ -48,6 +48,15 @@
   </main>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".js-rendered-markdown").forEach((container) => {
+        const source = container.nextElementSibling;
+        if (!(source instanceof HTMLTextAreaElement)) {
+          return;
+        }
+
+        container.innerHTML = source.value;
+      });
+
       // Initialize diff2html for each card
       document.querySelectorAll(".diff2html.diff-merged").forEach((container) => {
         const card = container.closest(".card");

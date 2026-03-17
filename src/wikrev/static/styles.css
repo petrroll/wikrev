@@ -109,6 +109,12 @@ body {
 .rendered {
   margin-top: 12px;
   overflow-x: auto;
+  max-width: 100%;
+}
+
+.rendered.markdown-body {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .rendered table {
@@ -323,6 +329,8 @@ pre code {
   width: 100%;
   border-collapse: collapse;
   margin: 1em 0;
+  display: block;
+  overflow-x: auto;
 }
 
 .markdown-body td, .markdown-body th {
@@ -497,6 +505,7 @@ details.card[open] .card-title {
 .card-body {
   padding: 12px 14px 14px 14px;
   border-top: 1px solid var(--border);
+  overflow: hidden;
 }
 
 /* Commit hash styling */

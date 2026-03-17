@@ -62,12 +62,14 @@
 
     <details class="panel">
       <summary>Rendered diff (visual preview)</summary>
-      <article class="rendered markdown-body rendered-diff">{{ change.rendered_diff | safe }}</article>
+      <article class="rendered markdown-body rendered-diff js-rendered-markdown"></article>
+      <textarea class="js-rendered-markdown-source" hidden>{{ change.rendered_diff }}</textarea>
     </details>
 
     <details class="panel">
       <summary>Final content</summary>
-      <article class="rendered markdown-body">{{ change.rendered_final | safe }}</article>
+      <article class="rendered markdown-body js-rendered-markdown"></article>
+      <textarea class="js-rendered-markdown-source" hidden>{{ change.rendered_final }}</textarea>
     </details>
   </div>
 </details>
