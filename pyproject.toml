@@ -1,6 +1,6 @@
 [project]
 name = "wikrev"
-version = "0.1.4"
+version = "0.1.5"
 description = "WikRev - Wiki Reviewer: Review recent wiki changes with diffs and previews."
 readme = "README.md"
 requires-python = ">=3.11"

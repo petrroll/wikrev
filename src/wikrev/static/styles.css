@@ -170,7 +170,7 @@ pre code {
 
 .diff2html .d2h-code-line-ctn,
 .diff2html-split .d2h-code-line-ctn {
-  display: block;
+  display: inline;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
