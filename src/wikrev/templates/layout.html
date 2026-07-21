@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WikRev - Wiki Reviewer</title>
   <link rel="stylesheet" href="/static/styles.css" />
-  <link rel="stylesheet" href="https://unpkg.com/diff2html/bundles/css/diff2html.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/diff2html@3.4.56/bundles/css/diff2html.min.css" />
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <script src="https://unpkg.com/diff2html/bundles/js/diff2html.min.js"></script>
+  <script src="https://unpkg.com/diff2html@3.4.56/bundles/js/diff2html.min.js"></script>
 </head>
 <body>
   <header class="header">
@@ -46,7 +46,9 @@
     </nav>
     {% block content %}{% endblock %}
   </main>
-  <script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.16.0/+esm";
+
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".js-rendered-markdown").forEach((container) => {
         const source = container.nextElementSibling;
@@ -56,6 +58,29 @@
 
         container.innerHTML = source.value;
       });
+
+      const mermaidNodes = [];
+      document.querySelectorAll(".js-rendered-markdown code.language-mermaid").forEach((code) => {
+        const pre = code.closest("pre");
+        if (!pre) return;
+
+        const diagram = document.createElement("div");
+        diagram.className = "mermaid";
+        diagram.textContent = code.textContent;
+        pre.replaceWith(diagram);
+        mermaidNodes.push(diagram);
+      });
+
+      if (mermaidNodes.length > 0) {
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
+        });
+        mermaid.run({ nodes: mermaidNodes }).catch((error) => {
+          console.error("Failed to render Mermaid diagram", error);
+        });
+      }
 
       // Initialize diff2html for each card
       document.querySelectorAll(".diff2html.diff-merged").forEach((container) => {
@@ -77,10 +102,17 @@
           return;
         }
         
-        const diffOptions = { drawFileList: false, matching: "lines", outputFormat: "line-by-line" };
+        const diffOptions = {
+          drawFileList: false,
+          matching: "words",
+          matchWordsThreshold: 0.25,
+          outputFormat: "line-by-line",
+        };
+        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         
         // Render merged diff (net changes from base to head)
         container.innerHTML = Diff2Html.html(mergedDiffText || splitDiffText, diffOptions);
+        container.classList.toggle("d2h-dark-color-scheme", isDark);
         
         // Count diffs in split view to decide if toggle is needed
         const diffCount = (splitDiffText.match(/^diff --git /gm) || []).length;
@@ -91,6 +123,7 @@
         
         // Render split diffs (individual commit patches)
         if (splitContainer) {
+          splitContainer.classList.toggle("d2h-dark-color-scheme", isDark);
           const diffs = splitDiffText.split(/(?=^diff --git )/m).filter(d => d.trim());
           splitContainer.innerHTML = diffs
             .map(diff => `<div class="diff-section">${Diff2Html.html(diff, diffOptions)}</div>`)

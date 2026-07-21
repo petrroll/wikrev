@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,7 +15,15 @@ from fastapi.templating import Jinja2Templates
 from markdown import markdown
 
 from .config import CONFIG_PATH, init_config, load_config, save_last_run, save_sort_order
-from .git_changes import build_change_entries, get_change_details, get_commits_since, git_pull, group_consecutive, _get_repo_prefix
+from .git_changes import (
+    _get_repo_prefix,
+    build_change_entries,
+    get_change_details,
+    get_commits_since,
+    git_pull,
+    group_consecutive,
+    infer_azure_wiki_base_url,
+)
 from .runtime_env import get_external_repo_venv_warning
 from .summarizer import get_cached_summary, set_cached_summary, summarize_with_copilot
 
@@ -68,7 +76,45 @@ def _extract_title(markdown_text: str | None, file_path: str) -> str:
 def _render_markdown(text: str | None) -> str:
     if not text:
         return ""
-    return markdown(text, extensions=["tables", "fenced_code"])
+    return _markdown_to_html(text)
+
+
+def _markdown_to_html(text: str) -> str:
+    azure_mermaid = re.compile(
+        r"^:::\s*mermaid\s*\r?\n(?P<diagram>.*?)^:::\s*$",
+        flags=re.IGNORECASE | re.MULTILINE | re.DOTALL,
+    )
+    normalized = azure_mermaid.sub(
+        lambda match: f"```mermaid\n{match.group('diagram').rstrip()}\n```",
+        text,
+    )
+    return markdown(normalized, extensions=["tables", "fenced_code"])
+
+
+def _build_wiki_page_url(
+    wiki_base_url: str | None,
+    file_path: str,
+    repo_prefix: str,
+) -> str | None:
+    if not wiki_base_url:
+        return None
+
+    relative_path = file_path.replace("\\", "/")
+    if repo_prefix and relative_path.startswith(repo_prefix):
+        relative_path = relative_path[len(repo_prefix):]
+    if relative_path.lower().endswith(".md"):
+        relative_path = relative_path[:-3]
+    page_path = "/" + unquote(relative_path).lstrip("/")
+
+    if "{path}" in wiki_base_url:
+        return wiki_base_url.replace("{path}", quote(page_path, safe="/"))
+
+    parsed = urlsplit(wiki_base_url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["pagePath"] = page_path
+    return urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
+    )
 
 
 def _render_inline_diff(base_text: str | None, head_text: str | None) -> str:
@@ -80,20 +126,17 @@ def _render_inline_diff(base_text: str | None, head_text: str | None) -> str:
     base = base_text or ""
     head = head_text or ""
     
-    # Debug: log what we're getting
-    import sys
-    
     if not base and not head:
         return "<p><em>No content available.</em></p>"
     
     # If base is empty but head has content, it's a new file - show all as added
     if not base and head:
-        rendered = markdown(head, extensions=["tables", "fenced_code"])
+        rendered = _markdown_to_html(head)
         return f'<div class="diff-added">{rendered}</div>'
     
     # If head is empty but base has content, file was deleted - show all as deleted
     if base and not head:
-        rendered = markdown(base, extensions=["tables", "fenced_code"])
+        rendered = _markdown_to_html(base)
         return f'<div class="diff-deleted">{rendered}</div>'
     
     # Split into blocks (paragraphs/sections)
@@ -109,28 +152,28 @@ def _render_inline_diff(base_text: str | None, head_text: str | None) -> str:
             # Unchanged lines - render as normal
             chunk = "\n".join(head_lines[j1:j2])
             if chunk.strip():
-                result_parts.append(markdown(chunk, extensions=["tables", "fenced_code"]))
+                result_parts.append(_markdown_to_html(chunk))
         elif tag == "delete":
             # Deleted lines - render with deletion styling
             chunk = "\n".join(base_lines[i1:i2])
             if chunk.strip():
-                rendered = markdown(chunk, extensions=["tables", "fenced_code"])
+                rendered = _markdown_to_html(chunk)
                 result_parts.append(f'<div class="diff-deleted">{rendered}</div>')
         elif tag == "insert":
             # Added lines - render with addition styling
             chunk = "\n".join(head_lines[j1:j2])
             if chunk.strip():
-                rendered = markdown(chunk, extensions=["tables", "fenced_code"])
+                rendered = _markdown_to_html(chunk)
                 result_parts.append(f'<div class="diff-added">{rendered}</div>')
         elif tag == "replace":
             # Changed lines - show both old and new
             old_chunk = "\n".join(base_lines[i1:i2])
             new_chunk = "\n".join(head_lines[j1:j2])
             if old_chunk.strip():
-                rendered = markdown(old_chunk, extensions=["tables", "fenced_code"])
+                rendered = _markdown_to_html(old_chunk)
                 result_parts.append(f'<div class="diff-deleted">{rendered}</div>')
             if new_chunk.strip():
-                rendered = markdown(new_chunk, extensions=["tables", "fenced_code"])
+                rendered = _markdown_to_html(new_chunk)
                 result_parts.append(f'<div class="diff-added">{rendered}</div>')
         
     return "".join(result_parts) if result_parts else "<p><em>No diff to show.</em></p>"
@@ -141,6 +184,7 @@ async def index(request: Request, weeks_back: int = 0):
     config = load_config()
     since = config.last_run - timedelta(weeks=weeks_back)
     repo_prefix = _get_repo_prefix(config.repo_path)
+    wiki_base_url = config.wiki_base_url or infer_azure_wiki_base_url(config.repo_path)
     
     commits = get_commits_since(config.repo_path, since)
     entries = build_change_entries(commits, config.path_filters, repo_prefix)
@@ -156,6 +200,11 @@ async def index(request: Request, weeks_back: int = 0):
             {
                 "group": detail.group,
                 "title": title,
+                "wiki_url": _build_wiki_page_url(
+                    wiki_base_url,
+                    detail.group.file_path,
+                    repo_prefix,
+                ),
                 "diff_text": detail.diff_text,
                 "split_diff_text": detail.split_diff_text,
                 "rendered_diff": _render_inline_diff(detail.base_content, detail.head_content),

@@ -1,7 +1,20 @@
 <details class="card" open>
   <summary class="card-summary">
     <span class="collapse-indicator"></span>
-    <h2 class="card-title">{{ change.title }}</h2>
+    <h2 class="card-title">
+      {% if change.wiki_url %}
+        <a
+          class="wiki-page-link"
+          href="{{ change.wiki_url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          onclick="event.stopPropagation()"
+          title="Open this page in the wiki"
+        >{{ change.title }} <span aria-hidden="true">↗</span></a>
+      {% else %}
+        {{ change.title }}
+      {% endif %}
+    </h2>
     <span class="meta-inline">
       <span class="pill author">{{ change.group.author }}</span>
       <span class="pill date">{{ change.group.newest_date.strftime('%Y-%m-%d %H:%M') }}</span>

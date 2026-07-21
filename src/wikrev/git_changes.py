@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
+from urllib.parse import quote, urlparse
 
 
 @dataclass
@@ -112,6 +113,33 @@ def _get_repo_prefix(repo_path: Path) -> str:
     except (subprocess.CalledProcessError, ValueError):
         pass
     return ""
+
+
+def infer_azure_wiki_base_url(repo_path: Path) -> Optional[str]:
+    """Infer an Azure DevOps wiki URL from the origin, repo path, and branch."""
+    try:
+        remote_url = _run_git(["remote", "get-url", "origin"], repo_path).strip()
+        parsed = urlparse(remote_url)
+        parts = [part for part in parsed.path.split("/") if part]
+        git_index = parts.index("_git")
+        if parsed.hostname != "dev.azure.com" or git_index < 2:
+            return None
+
+        organization = parts[0]
+        project = parts[1]
+        repository = parts[git_index + 1]
+        repo_prefix = _get_repo_prefix(repo_path)
+        wiki_name = repo_path.name if repo_prefix else repository.removesuffix(".wiki")
+        branch = _run_git(["branch", "--show-current"], repo_path).strip()
+
+        base_url = (
+            f"{parsed.scheme}://{parsed.hostname}/"
+            f"{quote(organization, safe='')}/{quote(project, safe='')}/"
+            f"_wiki/wikis/{quote(wiki_name, safe='')}"
+        )
+        return f"{base_url}?wikiVersion=GB{quote(branch, safe='')}" if branch else base_url
+    except (subprocess.CalledProcessError, ValueError, IndexError):
+        return None
 
 
 def get_commits_since(repo_path: Path, since: datetime) -> List[CommitInfo]:

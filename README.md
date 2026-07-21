@@ -35,6 +35,8 @@ root.
 - Shows markdown changes since last review
 - Merges consecutive commits by same author on same file
 - Displays raw diff, rendered diff, and final preview
+- Renders Mermaid diagrams, including Azure DevOps `:::mermaid` blocks
+- Links each change directly to its Azure DevOps wiki page when the URL can be inferred
 - Optional AI summaries via GitHub Copilot SDK (needs Copilot CLI installed and authenticated)
 
 ## Config
@@ -44,6 +46,7 @@ Edit `config.json`:
 | Key | Description |
 |-----|-------------|
 | `repo_path` | Path to the wiki repo |
+| `wiki_base_url` | Optional wiki URL override. WikRev infers Azure DevOps URLs when possible; use `{path}` as an optional page-path placeholder. |
 | `last_run` | ISO timestamp (or null for default) |
 | `enable_copilot` | Enable AI summaries |
 

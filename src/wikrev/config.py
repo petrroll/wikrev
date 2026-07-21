@@ -21,6 +21,7 @@ WEEKDAY_INDEX = {
 class AppConfig:
     repo_path: Path
     last_run: Optional[datetime]
+    wiki_base_url: Optional[str]
     enable_copilot: bool
     copilot_model: str
     default_weekday: str
@@ -35,6 +36,7 @@ CONFIG_PATH = WIKREV_DIR / "config.json"
 
 DEFAULT_CONFIG = {
     "repo_path": ".",
+    "wiki_base_url": None,
     "enable_copilot": True,
     "copilot_model": "gpt-5",
     "default_weekday": "tuesday",
@@ -92,6 +94,7 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
     return AppConfig(
         repo_path=repo_path,
         last_run=last_run,
+        wiki_base_url=str(raw["wiki_base_url"]).rstrip("/") if raw.get("wiki_base_url") else None,
         enable_copilot=bool(raw.get("enable_copilot", True)),
         copilot_model=str(raw.get("copilot_model", "gpt-5")),
         default_weekday=str(raw.get("default_weekday", "tuesday")),
