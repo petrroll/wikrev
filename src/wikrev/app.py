@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import difflib
 import html
+import logging
 import re
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
@@ -31,6 +34,8 @@ BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 TEMPLATES.env.filters["urlencode"] = lambda value: quote(str(value), safe="")
 
+logger = logging.getLogger(__name__)
+
 
 def _timeago(dt: datetime) -> str:
     """Return a human-readable 'time ago' string."""
@@ -54,6 +59,23 @@ def _timeago(dt: datetime) -> str:
 
 TEMPLATES.env.filters["timeago"] = _timeago
 
+# Diffs computed while rendering the index, reused by the lazy summary endpoint so
+# it doesn't re-run the whole git pipeline once per card.
+_DIFF_CACHE: "OrderedDict[tuple[str, str, str], str]" = OrderedDict()
+_DIFF_CACHE_MAX = 2000
+
+
+def _diff_cache_key(config, since: datetime, summary_key: str) -> tuple[str, str, str]:
+    return (str(config.repo_path), since.isoformat(), summary_key)
+
+
+def _diff_cache_put(key: tuple[str, str, str], diff_text: str) -> None:
+    _DIFF_CACHE[key] = diff_text
+    _DIFF_CACHE.move_to_end(key)
+    while len(_DIFF_CACHE) > _DIFF_CACHE_MAX:
+        _DIFF_CACHE.popitem(last=False)
+
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
@@ -63,9 +85,11 @@ async def startup_pull():
     """Auto-pull the wiki repo on startup (equivalent to Pull & Refresh button)."""
     try:
         config = load_config()
-        git_pull(config.repo_path)
+        # Off the event loop, and bounded by GIT_PULL_TIMEOUT_SECONDS so a stalled
+        # network or credential prompt can't wedge startup forever.
+        await asyncio.to_thread(git_pull, config.repo_path)
     except Exception:
-        pass  # Don't block startup if pull fails
+        logger.warning("Startup git pull failed", exc_info=True)
 
 
 def _extract_title(markdown_text: str | None, file_path: str) -> str:
@@ -180,7 +204,9 @@ def _render_inline_diff(base_text: str | None, head_text: str | None) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, weeks_back: int = 0):
+def index(request: Request, weeks_back: int = 0):
+    # Deliberately sync: FastAPI runs it in a threadpool so the blocking git and
+    # markdown work cannot stall the event loop (and every other request).
     config = load_config()
     since = config.last_run - timedelta(weeks=weeks_back)
     repo_prefix = _get_repo_prefix(config.repo_path)
@@ -196,6 +222,7 @@ async def index(request: Request, weeks_back: int = 0):
         title = _extract_title(detail.head_content, detail.group.file_path)
         summary_key = detail.group.group_id
         summary = get_cached_summary(summary_key)
+        _diff_cache_put(_diff_cache_key(config, since, summary_key), detail.diff_text)
         change_cards.append(
             {
                 "group": detail.group,
@@ -236,14 +263,14 @@ async def index(request: Request, weeks_back: int = 0):
 
 
 @app.post("/refresh")
-async def refresh():
+def refresh():
     config = load_config()
     git_pull(config.repo_path)
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/clear-summaries")
-async def clear_summaries():
+def clear_summaries():
     from .summarizer import CACHE_PATH
     if CACHE_PATH.exists():
         CACHE_PATH.unlink()
@@ -251,18 +278,37 @@ async def clear_summaries():
 
 
 @app.post("/mark-reviewed")
-async def mark_reviewed():
+def mark_reviewed():
     now = datetime.now().astimezone()
     save_last_run(now)
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/toggle-sort-order")
-async def toggle_sort_order():
+def toggle_sort_order():
     config = load_config()
     new_order = "oldest_first" if config.sort_order == "newest_first" else "newest_first"
     save_sort_order(new_order)
     return RedirectResponse(url="/", status_code=303)
+
+
+def _collect_summary_diff(config, summary_key: str, weeks_back: int) -> str | None:
+    """Build the merged diff for one change card. Returns None if it no longer exists."""
+    since = config.last_run - timedelta(weeks=weeks_back)
+    cached = _DIFF_CACHE.get(_diff_cache_key(config, since, summary_key))
+    if cached is not None:
+        return cached
+
+    commits = get_commits_since(config.repo_path, since)
+    repo_prefix = _get_repo_prefix(config.repo_path)
+    entries = build_change_entries(commits, config.path_filters, repo_prefix)
+    groups = group_consecutive(entries)
+    detail_map = {g.group_id: g for g in groups}
+    if summary_key not in detail_map:
+        return None
+
+    details = get_change_details(config.repo_path, [detail_map[summary_key]])
+    return details[0].diff_text if details else ""
 
 
 @app.get("/summary/{summary_key:path}", response_class=HTMLResponse)
@@ -275,24 +321,15 @@ async def get_summary(request: Request, summary_key: str, weeks_back: int = 0):
     if not config.enable_copilot:
         return HTMLResponse("Copilot summaries disabled in config.")
 
-    since = config.last_run - timedelta(weeks=weeks_back)
-    commits = get_commits_since(config.repo_path, since)
-    repo_prefix = _get_repo_prefix(config.repo_path)
-    entries = build_change_entries(commits, config.path_filters, repo_prefix)
-    groups = group_consecutive(entries)
-    detail_map = {g.group_id: g for g in groups}
-    if summary_key not in detail_map:
+    diff_text = await asyncio.to_thread(_collect_summary_diff, config, summary_key, weeks_back)
+    if diff_text is None:
         return HTMLResponse("Summary not available.")
-
-    details = get_change_details(config.repo_path, [detail_map[summary_key]])
-    diff_text = details[0].diff_text if details else ""
 
     try:
         summary = await summarize_with_copilot(diff_text, config.copilot_model)
     except Exception as exc:
-        import logging
         import traceback
-        logging.getLogger(__name__).error(
+        logger.error(
             "Failed to get Copilot summary for %s: %s\n%s",
             summary_key, exc, traceback.format_exc()
         )

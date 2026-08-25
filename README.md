@@ -41,14 +41,25 @@ root.
 
 ## Config
 
-Edit `config.json`:
+Edit `.wikrev/config.json`:
 
 | Key | Description |
 |-----|-------------|
-| `repo_path` | Path to the wiki repo |
+| `repo_path` | Path to the wiki, relative to the folder containing `.wikrev`. It may point at a subfolder of a larger git repo (e.g. `./Trouter`); changes outside that subfolder are ignored. |
 | `wiki_base_url` | Optional wiki URL override. WikRev infers Azure DevOps URLs when possible; use `{path}` as an optional page-path placeholder. |
 | `last_run` | ISO timestamp (or null for default) |
 | `enable_copilot` | Enable AI summaries |
+| `copilot_model` | Model used for AI summaries |
+| `default_weekday` / `default_time` | Fallback review window when `last_run` is null |
+| `path_filters` | Glob patterns (relative to `repo_path`) excluding pages from the review. Prefix a pattern with `!` to re-include, e.g. `["Release-Notes", "!Release-Notes/Template.md"]`. |
+| `sort_order` | `newest_first` or `oldest_first` |
+
+### Wiki in a subfolder
+
+`repo_path` is the scope of the review. When it points at a subfolder, WikRev
+resolves the folder's path relative to the git root and drops every changed file
+outside it, so unrelated code, pipelines, and generated folders in the same
+repository never show up (and never cost anything to process).
 
 ## Requirements
 

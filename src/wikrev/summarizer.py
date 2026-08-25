@@ -10,11 +10,18 @@ logger = logging.getLogger(__name__)
 
 CACHE_PATH = WIKREV_DIR / "summary_cache.json"
 
+# Keep prompts bounded so one huge diff can't stall or blow up a summary request.
+MAX_DIFF_CHARS = 60_000
+
 
 def _load_cache() -> dict:
     if not CACHE_PATH.exists():
         return {}
-    return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+    try:
+        return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Ignoring unreadable summary cache: %s", CACHE_PATH)
+        return {}
 
 
 def _save_cache(cache: dict) -> None:
@@ -34,13 +41,16 @@ def set_cached_summary(key: str, summary: str) -> None:
 
 
 def _build_summary_prompt(diff_text: str) -> str:
+    truncated = diff_text or ""
+    if len(truncated) > MAX_DIFF_CHARS:
+        truncated = truncated[:MAX_DIFF_CHARS] + "\n\n[diff truncated for length]"
     return (
         "Summarize the following markdown diff in 1-2 sentences. "
         "Focus on user-visible changes. If content appears in both deletions (-) "
         "and additions (+) with the same text, it may have been moved or "
         "reformatted rather than truly added or removed. Be precise about "
         "whether content was added, removed, moved, or modified.\n\n"
-        f"{diff_text}"
+        f"{truncated}"
     )
 
 
