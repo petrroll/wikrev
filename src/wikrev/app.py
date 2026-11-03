@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import difflib
 import html
 import logging
 import re
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
 from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from fastapi import FastAPI, Request
@@ -27,6 +25,7 @@ from .git_changes import (
     group_consecutive,
     infer_azure_wiki_base_url,
 )
+from .richdiff import render_rich_diff
 from .runtime_env import get_external_repo_venv_warning
 from .summarizer import get_cached_summary, set_cached_summary, summarize_with_copilot
 
@@ -142,65 +141,8 @@ def _build_wiki_page_url(
 
 
 def _render_inline_diff(base_text: str | None, head_text: str | None) -> str:
-    """Render markdown with inline diff: deletions in red, additions in green.
-    
-    Strategy: render the full content, then use the raw text diff to mark
-    which rendered blocks changed.
-    """
-    base = base_text or ""
-    head = head_text or ""
-    
-    if not base and not head:
-        return "<p><em>No content available.</em></p>"
-    
-    # If base is empty but head has content, it's a new file - show all as added
-    if not base and head:
-        rendered = _markdown_to_html(head)
-        return f'<div class="diff-added">{rendered}</div>'
-    
-    # If head is empty but base has content, file was deleted - show all as deleted
-    if base and not head:
-        rendered = _markdown_to_html(base)
-        return f'<div class="diff-deleted">{rendered}</div>'
-    
-    # Split into blocks (paragraphs/sections)
-    base_lines = base.splitlines()
-    head_lines = head.splitlines()
-    
-    result_parts: List[str] = []
-    matcher = difflib.SequenceMatcher(None, base_lines, head_lines)
-    
-    
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == "equal":
-            # Unchanged lines - render as normal
-            chunk = "\n".join(head_lines[j1:j2])
-            if chunk.strip():
-                result_parts.append(_markdown_to_html(chunk))
-        elif tag == "delete":
-            # Deleted lines - render with deletion styling
-            chunk = "\n".join(base_lines[i1:i2])
-            if chunk.strip():
-                rendered = _markdown_to_html(chunk)
-                result_parts.append(f'<div class="diff-deleted">{rendered}</div>')
-        elif tag == "insert":
-            # Added lines - render with addition styling
-            chunk = "\n".join(head_lines[j1:j2])
-            if chunk.strip():
-                rendered = _markdown_to_html(chunk)
-                result_parts.append(f'<div class="diff-added">{rendered}</div>')
-        elif tag == "replace":
-            # Changed lines - show both old and new
-            old_chunk = "\n".join(base_lines[i1:i2])
-            new_chunk = "\n".join(head_lines[j1:j2])
-            if old_chunk.strip():
-                rendered = _markdown_to_html(old_chunk)
-                result_parts.append(f'<div class="diff-deleted">{rendered}</div>')
-            if new_chunk.strip():
-                rendered = _markdown_to_html(new_chunk)
-                result_parts.append(f'<div class="diff-added">{rendered}</div>')
-        
-    return "".join(result_parts) if result_parts else "<p><em>No diff to show.</em></p>"
+    """Render a GitHub-style rich markdown diff (see richdiff.render_rich_diff)."""
+    return render_rich_diff(base_text, head_text, _markdown_to_html)
 
 
 @app.get("/", response_class=HTMLResponse)

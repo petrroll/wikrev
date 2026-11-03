@@ -73,9 +73,20 @@
       <div class="rendered diff2html-split" hidden></div>
     </details>
 
-    <details class="panel">
-      <summary>Rendered diff (visual preview)</summary>
-      <article class="rendered markdown-body rendered-diff js-rendered-markdown"></article>
+    <details class="panel" open>
+      <summary class="panel-summary-with-toggle">
+        <span>Rendered diff</span>
+        <span class="rd-legend" aria-hidden="true">
+          <span class="rd-legend-item rd-legend-added">Added</span>
+          <span class="rd-legend-item rd-legend-removed">Removed</span>
+          <span class="rd-legend-item rd-legend-modified">Changed</span>
+        </span>
+        <label class="toggle-label" onclick="event.stopPropagation()">
+          <input type="checkbox" class="rd-whole-toggle" />
+          <span>Whole document</span>
+        </label>
+      </summary>
+      <article class="rendered markdown-body rich-diff js-rendered-markdown"></article>
       <textarea class="js-rendered-markdown-source" hidden>{{ change.rendered_diff }}</textarea>
     </details>
 

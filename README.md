@@ -34,7 +34,7 @@ root.
 
 - Shows markdown changes since last review
 - Merges consecutive commits by same author on same file
-- Displays raw diff, rendered diff, and final preview
+- Displays raw diff, a GitHub-style rendered diff (changes only or whole document, press `W`), and final preview
 - Renders Mermaid diagrams, including Azure DevOps `:::mermaid` blocks
 - Links each change directly to its Azure DevOps wiki page when the URL can be inferred
 - Optional AI summaries via GitHub Copilot SDK (needs Copilot CLI installed and authenticated)
@@ -49,7 +49,7 @@ Edit `.wikrev/config.json`:
 | `wiki_base_url` | Optional wiki URL override. WikRev infers Azure DevOps URLs when possible; use `{path}` as an optional page-path placeholder. |
 | `last_run` | ISO timestamp (or null for default) |
 | `enable_copilot` | Enable AI summaries |
-| `copilot_model` | Model used for AI summaries |
+| `copilot_model` | Model used for AI summaries (default `claude-haiku-4.5`) |
 | `default_weekday` / `default_time` | Fallback review window when `last_run` is null |
 | `path_filters` | Glob patterns (relative to `repo_path`) excluding pages from the review. Prefix a pattern with `!` to re-include, e.g. `["Release-Notes", "!Release-Notes/Template.md"]`. |
 | `sort_order` | `newest_first` or `oldest_first` |

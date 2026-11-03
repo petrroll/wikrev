@@ -34,11 +34,13 @@ class AppConfig:
 WIKREV_DIR = Path.cwd() / ".wikrev"
 CONFIG_PATH = WIKREV_DIR / "config.json"
 
+DEFAULT_COPILOT_MODEL = "claude-haiku-4.5"
+
 DEFAULT_CONFIG = {
     "repo_path": ".",
     "wiki_base_url": None,
     "enable_copilot": True,
-    "copilot_model": "gpt-5",
+    "copilot_model": DEFAULT_COPILOT_MODEL,
     "default_weekday": "tuesday",
     "default_time": "15:00",
     "path_filters": [],
@@ -96,7 +98,7 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
         last_run=last_run,
         wiki_base_url=str(raw["wiki_base_url"]).rstrip("/") if raw.get("wiki_base_url") else None,
         enable_copilot=bool(raw.get("enable_copilot", True)),
-        copilot_model=str(raw.get("copilot_model", "gpt-5")),
+        copilot_model=str(raw.get("copilot_model", DEFAULT_COPILOT_MODEL)),
         default_weekday=str(raw.get("default_weekday", "tuesday")),
         default_time=str(raw.get("default_time", "15:00")),
         path_filters=list(raw.get("path_filters", raw.get("excluded_folders", []))),

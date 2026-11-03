@@ -228,34 +228,70 @@ pre code {
   border-collapse: collapse;
 }
 
-/* Simplify line-by-line diff: single line number, less row separation */
-.d2h-code-linenumber {
-  border: none;
-  background: transparent;
-  padding: 0 8px 0 4px;
-  min-width: auto;
-  color: var(--muted);
-  opacity: 0.6;
+/* Code diff: GitHub-like palette blended into the card background */
+.diff2html,
+.diff2html-split {
+  --d2h-bg-color: var(--card);
+  --d2h-dark-bg-color: var(--card);
+  --d2h-line-border-color: transparent;
+  --d2h-dark-line-border-color: transparent;
+  /* Edited lines use the same red/green as plain removals/additions */
+  --d2h-change-del-color: var(--d2h-del-bg-color);
+  --d2h-change-ins-color: var(--d2h-ins-bg-color);
+  --d2h-dark-change-del-color: var(--d2h-dark-del-bg-color);
+  --d2h-dark-change-ins-color: var(--d2h-dark-ins-bg-color);
 }
 
-/* Remove heavy borders between rows */
+/* Keep the cell unpadded: both 3.5em line-number columns must fit its 7.5em width */
+.d2h-diff-tbody td.d2h-code-linenumber,
+.d2h-dark-color-scheme .d2h-diff-tbody td.d2h-code-linenumber {
+  border: none;
+  padding: 0;
+  opacity: 0.75;
+}
+
 .d2h-diff-tbody tr {
   border: none;
 }
 
 .d2h-diff-tbody td {
   border: none;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
   padding: 1px 4px;
+  line-height: 1.55;
 }
 
-/* Keep subtle coloring for changed lines */
-.d2h-del {
-  background: rgba(248, 81, 73, 0.15);
+/* Red/green edge to the left of changed lines */
+.d2h-code-linenumber.d2h-ins {
+  box-shadow: inset 3px 0 0 #2ea043;
 }
 
-.d2h-ins {
-  background: rgba(46, 160, 67, 0.15);
+.d2h-code-linenumber.d2h-del {
+  box-shadow: inset 3px 0 0 #f85149;
+}
+
+.d2h-code-line-prefix {
+  user-select: none;
+  opacity: 0.8;
+}
+
+.d2h-ins .d2h-code-line-prefix {
+  color: #2ea043;
+}
+
+.d2h-del .d2h-code-line-prefix {
+  color: #f85149;
+}
+
+.d2h-code-line ins,
+.d2h-code-line del {
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+/* Hunk headers ("@@ -1,3 +1,4 @@") */
+td.d2h-info {
+  font-size: 0.78rem;
+  padding: 4px 4px;
 }
 
 .d2h-code-line-ctn {
@@ -400,43 +436,188 @@ pre code {
   text-align: center;
 }
 
-/* Inline diff styles for rendered diff view */
-.diff-added {
-  background: rgba(46, 160, 67, 0.35);
-  border-left: 4px solid #2ea043;
-  padding: 8px 12px;
+/* Rendered (rich) markdown diff */
+.rich-diff {
+  --rd-added: #2ea043;
+  --rd-removed: #f85149;
+  --rd-changed: #d29922;
+  --rd-added-bg: rgba(46, 160, 67, 0.1);
+  --rd-removed-bg: rgba(248, 81, 73, 0.1);
+  --rd-added-word: rgba(46, 160, 67, 0.35);
+  --rd-removed-word: rgba(248, 81, 73, 0.35);
+}
+
+.rd-block {
+  position: relative;
+  padding: 1px 12px 1px 16px;
+}
+
+.rd-block::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 2px;
+}
+
+.rd-block > :first-child {
+  margin-top: 0.4em;
+}
+
+.rd-block > :last-child {
+  margin-bottom: 0.4em;
+}
+
+.rd-added,
+.rd-removed,
+.rd-modified {
   margin: 4px 0;
-  display: block;
-  border-radius: 4px;
+  border-radius: 0 6px 6px 0;
 }
 
-.diff-added::before {
-  content: "+ ";
-  color: #2ea043;
-  font-weight: bold;
+.rd-added {
+  background: var(--rd-added-bg);
 }
 
-.diff-deleted {
-  background: rgba(248, 81, 73, 0.35);
-  border-left: 4px solid #f85149;
-  padding: 8px 12px;
-  margin: 4px 0;
-  text-decoration: line-through;
-  opacity: 0.85;
-  display: block;
-  border-radius: 4px;
+.rd-bar-added::before {
+  background: var(--rd-added);
 }
 
-.diff-deleted::before {
-  content: "- ";
-  color: #f85149;
-  font-weight: bold;
+.rd-removed {
+  background: var(--rd-removed-bg);
+}
+
+.rd-bar-removed::before {
+  background: var(--rd-removed);
+}
+
+.rd-removed > * {
+  opacity: 0.8;
+}
+
+/* Edited in place with both removals and additions; word-level marks inside */
+.rd-bar-changed::before {
+  background: var(--rd-changed);
+}
+
+/* Modified tables mark each changed row instead of the whole block */
+.rich-diff tr.rd-row-added > :first-child {
+  box-shadow: inset 4px 0 0 var(--rd-added);
+}
+
+.rich-diff tr.rd-row-removed > :first-child {
+  box-shadow: inset 4px 0 0 var(--rd-removed);
+}
+
+.rich-diff tr.rd-row-changed > :first-child {
+  box-shadow: inset 4px 0 0 var(--rd-changed);
+}
+
+.rich-diff tr.rd-row-added {
+  background: var(--rd-added-bg);
+}
+
+.rich-diff tr.rd-row-removed {
+  background: var(--rd-removed-bg);
+}
+
+/* List items are diffed one by one; make consecutive items read as one list */
+.rich-diff .rd-block > ul,
+.rich-diff .rd-block > ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.rich-diff del + ins {
+  margin-left: 2px;
+}
+
+.rich-diff ins,
+.rich-diff del {
   text-decoration: none;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
-.rendered-diff .diff-added,
-.rendered-diff .diff-deleted {
+.rich-diff ins {
+  background: var(--rd-added-word);
+}
+
+.rich-diff del {
+  background: var(--rd-removed-word);
+  text-decoration: line-through;
+  text-decoration-color: var(--rd-removed);
+}
+
+/* Compact view: hide unchanged blocks far from any change */
+.rich-diff:not(.rd-show-all) .rd-far {
+  display: none;
+}
+
+.rich-diff.rd-show-all .rd-gap {
+  display: none;
+}
+
+.rd-gap {
   display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 4px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: rgba(90, 162, 255, 0.05);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.rd-gap:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.rd-legend {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.rd-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rd-legend-item::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.rd-legend-added::before {
+  background: #2ea043;
+}
+
+.rd-legend-removed::before {
+  background: #f85149;
+}
+
+.rd-legend-modified::before {
+  background: #d29922;
+}
+
+.rd-legend + .toggle-label {
+  margin-left: 12px;
 }
 
 /* Button link styles */
@@ -649,7 +830,7 @@ details.card[open] {
 
 /* Keyboard shortcut hints */
 .card-nav::after {
-  content: "↑/↓ navigate • Enter toggle • Space toggle+next • D merge/split diff";
+  content: "j/k navigate • Enter toggle • Space toggle+next • D merge/split diff • W whole document";
   margin-left: auto;
   font-size: 0.75rem;
   color: var(--muted);

@@ -82,6 +82,27 @@
         });
       }
 
+      // Rendered diff: compact (changes + context) vs. whole document
+      document.querySelectorAll(".rich-diff").forEach((article) => {
+        const panel = article.closest(".panel");
+        const toggle = panel?.querySelector(".rd-whole-toggle");
+        if (!toggle) return;
+        const hasHidden = article.querySelector(".rd-gap") !== null;
+        if (!hasHidden) {
+          toggle.closest(".toggle-label").style.display = "none";
+          return;
+        }
+        toggle.addEventListener("change", () => {
+          article.classList.toggle("rd-show-all", toggle.checked);
+        });
+        article.addEventListener("click", (event) => {
+          if (event.target.closest(".rd-gap")) {
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event("change"));
+          }
+        });
+      });
+
       // Initialize diff2html for each card
       document.querySelectorAll(".diff2html.diff-merged").forEach((container) => {
         const card = container.closest(".card");
@@ -273,6 +294,15 @@
             e.preventDefault();
             cards[currentIndex].open = !cards[currentIndex].open;
             nextCard();
+          }
+        } else if (e.key === "w" || e.key === "W") {
+          // Toggle whole document / changes only in the rendered diff
+          ensureSelection();
+          const toggle = cards[currentIndex]?.querySelector(".rd-whole-toggle");
+          if (toggle && toggle.closest(".toggle-label").style.display !== "none") {
+            e.preventDefault();
+            toggle.checked = !toggle.checked;
+            toggle.dispatchEvent(new Event("change"));
           }
         } else if (e.key === "d" || e.key === "D") {
           // Toggle merged/separate diffs for current card
